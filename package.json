@@ -1,0 +1,13 @@
+{
+  "name": "llm-pricing",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "主流大模型官方 API 计费价格、包月套餐与估算 Token 静态对比站（Cloudflare Workers Static Assets）",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "validate": "node scripts/validate-data.mjs",
+    "check": "node scripts/validate-data.mjs && node --check public/app.js"
+  }
+}

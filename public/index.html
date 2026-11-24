@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>大模型 API 计费 & 包月套餐价格对照</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <div class="brand">
+          <div class="brand-title-row">
+            <h1>大模型 API 计费 &amp; 包月套餐对照</h1>
+            <span class="badge badge-neutral" id="verified-badge">数据核对：--</span>
+          </div>
+          <p class="brand-sub">
+            官方 API 单价（输入 / 输出 / 缓存读写 / TTL）+ Coding Plan 包月套餐与可用 Token 估算 · 均附官方原始链接
+          </p>
+        </div>
+
+        <div class="global-controls" aria-label="全局显示控制">
+          <div class="segmented" role="group" aria-label="币种显示">
+            <button type="button" class="seg-btn active" data-currency="native">原币种</button>
+            <button type="button" class="seg-btn" data-currency="USD">USD $</button>
+            <button type="button" class="seg-btn" data-currency="CNY">CNY ¥</button>
+          </div>
+          <label class="fx-box" title="用于统一换算 USD 与 CNY（默认 7.20）">
+            <span>1 USD =</span>
+            <input id="fx-rate-input" type="number" min="1" max="20" step="0.01" value="7.20" />
+            <span>CNY</span>
+          </label>
+          <button type="button" id="open-order-modal" class="icon-btn" title="调整并本地保存默认厂商排序">
+            厂商排序
+          </button>
+          <button type="button" id="theme-toggle" class="icon-btn" title="切换深浅色主题" aria-label="切换主题">
+            深色
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <nav class="tabs-nav" aria-label="主功能导航">
+      <div class="container tabs-bar">
+        <a href="#api" id="tab-api" class="tab-link active" data-tab="api">
+          <span>1. 官方 API 价格</span>
+          <span class="tab-count" id="tab-count-api">0</span>
+        </a>
+        <a href="#plans" id="tab-plans" class="tab-link" data-tab="plans">
+          <span>2. 包月套餐 &amp; 估算 Token</span>
+          <span class="tab-count" id="tab-count-plans">0</span>
+        </a>
+        <a href="#third-party" id="tab-third-party" class="tab-link" data-tab="third-party">
+          <span>3. 第三方渠道对比（预留）</span>
+          <span class="tab-count" id="tab-count-tp">0</span>
+        </a>
+      </div>
+    </nav>
+
+    <main class="container main-content">
+      <!-- ==================== TAB 1: 官方 API 价格 ==================== -->
+      <section id="panel-api" class="tab-panel active" aria-labelledby="tab-api">
+        <div class="toolbar card">
+          <div class="toolbar-row toolbar-main-row">
+            <div class="toolbar-search-line">
+              <div class="field-group grow">
+                <label class="sr-only" for="api-search">搜索模型或厂商</label>
+                <input
+                  id="api-search"
+                  type="search"
+                  class="input"
+                  placeholder="搜索模型名、Model ID 或厂商（如 sonnet、gpt-6、deepseek、glm）..."
+                />
+              </div>
+              <button
+                type="button"
+                id="api-toggle-advanced"
+                class="mobile-filter-toggle"
+                aria-expanded="false"
+                aria-controls="api-advanced-filters"
+              >
+                筛选
+              </button>
+            </div>
+
+            <div id="api-advanced-filters" class="toolbar-advanced">
+              <div class="segmented" role="group" aria-label="区域筛选" id="region-filter">
+                <button type="button" class="seg-btn active" data-region="all">全部区域</button>
+                <button type="button" class="seg-btn" data-region="global">海外</button>
+                <button type="button" class="seg-btn" data-region="china">国内</button>
+              </div>
+
+              <label class="select-wrap">
+                <span>档位</span>
+                <select id="api-tier-filter" class="select">
+                  <option value="all">全部档位</option>
+                  <option value="flagship">旗舰</option>
+                  <option value="balanced">均衡</option>
+                  <option value="fast">极速轻量</option>
+                  <option value="long-context">长上下文</option>
+                </select>
+              </label>
+
+              <label class="select-wrap">
+                <span>上下文</span>
+                <select id="api-ctx-filter" class="select">
+                  <option value="0">不限</option>
+                  <option value="256000">≥ 256K</option>
+                  <option value="500000">≥ 500K</option>
+                  <option value="1000000">≥ 1M</option>
+                </select>
+              </label>
+
+              <label class="select-wrap">
+                <span>缓存方式</span>
+                <select id="cache-mode-filter" class="select">
+                  <option value="all">全部机制</option>
+                  <option value="multiplier">按写入倍率</option>
+                  <option value="storage_hourly">按存储时长</option>
+                  <option value="free_auto">自动免写入</option>
+                </select>
+              </label>
+
+              <label class="select-wrap">
+                <span>TTL</span>
+                <select id="api-ttl-filter" class="select">
+                  <option value="all">不限</option>
+                  <option value="explicit_ttl">支持明确 TTL</option>
+                  <option value="long_ttl">≥1h 长缓存</option>
+                  <option value="auto_only">纯自动免管理</option>
+                </select>
+              </label>
+
+              <label class="inline-num-wrap" title="过滤综合估算单价低于等于该上限的模型">
+                <span>综合价 ≤</span>
+                <input id="api-max-blended" type="number" min="0" step="0.1" placeholder="不限" />
+                <span id="api-max-blended-unit">$/1M</span>
+              </label>
+
+              <label class="select-wrap" title="综合价 = (75% 输入 × [(1-命中率)×标准输入 + 命中率×缓存读]) + 25% 输出">
+                <span>综合价场景</span>
+                <select id="workload-preset" class="select">
+                  <option value="agent_85">Coding Agent (85% 缓存)</option>
+                  <option value="chat_50">常规多轮 (50% 缓存)</option>
+                  <option value="raw_0">无缓存 3:1 (0% 缓存)</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div class="toolbar-row toolbar-row-secondary">
+            <div class="chip-bar-wrap">
+              <div class="chip-list" id="provider-chips" aria-label="厂商筛选"></div>
+              <span class="muted small chip-hint">可多选对比</span>
+              <button type="button" id="api-open-order-btn" class="btn-link-subtle" title="自定义厂商排序并保存到本地浏览器">
+                调整排序
+              </button>
+            </div>
+            <div class="toggle-group">
+              <label class="checkbox-label" title="开启后 DeepSeek 显示工作日高峰外 5 折空闲价">
+                <input type="checkbox" id="toggle-deepseek-offpeak" />
+                <span>DeepSeek 空闲 5 折</span>
+              </label>
+              <label class="checkbox-label" title="预留对比 OpenCode Zen 等第三方渠道价格与实测 token/s 差异">
+                <input type="checkbox" id="toggle-third-party-col" />
+                <span>显示第三方列（预留）</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-meta-bar">
+          <div class="meta-bar-left">
+            <span id="api-result-summary">共 -- 个模型</span>
+            <button type="button" id="api-reset-filters" class="btn-reset hidden">重置筛选</button>
+            <button type="button" id="api-open-cache-guide" class="btn-link-subtle">缓存字段与 TTL 说明</button>
+          </div>
+          <span class="hint">点击任意模型行可展开缓存细则、阶梯规则与全部官方原始链接 · 价格单位：每 1M Tokens</span>
+        </div>
+
+        <div id="api-mobile-bar" class="mobile-view-bar">
+          <label class="select-wrap mobile-sort-wrap">
+            <span>排序</span>
+            <select id="api-mobile-sort" class="select">
+              <option value="default:asc">默认厂商顺序</option>
+              <option value="blended:asc">综合估算最低</option>
+              <option value="input:asc">输入单价最低</option>
+              <option value="output:asc">输出单价最低</option>
+              <option value="cacheRead:asc">缓存读最低</option>
+            </select>
+          </label>
+          <div class="segmented" id="api-view-toggle" role="group" aria-label="手机端视图切换">
+            <button type="button" class="seg-btn active" data-api-view="cards">卡片</button>
+            <button type="button" class="seg-btn" data-api-view="table">表格</button>
+          </div>
+        </div>
+
+        <div id="api-mobile-cards" class="api-mobile-cards"></div>
+
+        <div class="card table-card">
+          <div class="table-scroll">
+            <table class="pricing-table" id="api-table">
+              <thead>
+                <tr>
+                  <th class="sortable active-sort" data-sort="default">厂商 / 模型 <span class="sort-arrow">↑</span></th>
+                  <th class="num sortable" data-sort="input">
+                    输入 / 1M<button type="button" class="th-help-btn" data-help="input" aria-label="查看输入计费说明" aria-expanded="false">?</button>
+                  </th>
+                  <th class="num sortable" data-sort="output">
+                    输出 / 1M<button type="button" class="th-help-btn" data-help="output" aria-label="查看输出计费说明" aria-expanded="false">?</button>
+                  </th>
+                  <th class="num sortable" data-sort="cacheRead">
+                    缓存读 / 1M<button type="button" class="th-help-btn" data-help="cacheRead" aria-label="查看缓存读说明" aria-expanded="false">?</button>
+                  </th>
+                  <th>
+                    缓存写 / 存储费<button type="button" class="th-help-btn" data-help="cacheWrite" aria-label="查看缓存写与存储费说明" aria-expanded="false">?</button>
+                  </th>
+                  <th>
+                    缓存时间 (TTL)<button type="button" class="th-help-btn" data-help="cacheTtl" aria-label="查看缓存时间 TTL 说明" aria-expanded="false">?</button>
+                  </th>
+                  <th class="num sortable" data-sort="blended">
+                    综合估算 / 1M<button type="button" class="th-help-btn" data-help="blended" aria-label="查看综合估算价说明" aria-expanded="false">?</button>
+                  </th>
+                  <th class="tp-col hidden">第三方（预留）</th>
+                  <th class="right">官方源</th>
+                </tr>
+              </thead>
+              <tbody id="api-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <details id="api-cache-guide" class="card methodology-card">
+          <summary>缓存机制与计费说明（缓存读、缓存写/存储与双值 TTL 详解）</summary>
+          <div class="methodology-body">
+            <div class="guide-grid">
+              <div class="guide-box">
+                <h3>1. 什么是「缓存读 / 1M」？</h3>
+                <p>
+                  多轮对话、Coding Agent 或大文档问答时，每次请求开头往往带着相同的 System Prompt、工具定义和前文历史。如果这些重复前缀命中了服务端已有缓存，命中部分不再按原价「输入」扣费，而是改按<strong>缓存读（Cache Read）</strong>的超低折扣价计费——常见为标准输入的 <strong>0.02×–0.25×</strong>（即省 75%–98%）；未命中的新增内容仍按标准输入计费。
+                </p>
+              </div>
+              <div class="guide-box">
+                <h3>2. 什么是「缓存写 / 存储费」？</h3>
+                <p>代表把前缀首次存进缓存的额外代价，分为三种模式：</p>
+                <ul>
+                  <li>
+                    <strong>按写入倍率（<code>multiplier</code>）</strong>：首次写入指定 TTL 缓存时一次性加价（如 <code>1.25×</code> / <code>2.0×</code> / <code>2.5×</code>），无小时租金，后续命中 1–2 次即回本；
+                  </li>
+                  <li>
+                    <strong>按小时存储（<code>storage_hourly</code>）</strong>：显式缓存对象按声明 TTL 持续计内存租金（如 Gemini 3.8 Flash 为 <code>$0.50/1M/h</code>、火山方舟 <code>¥0.017/1M/h</code>），空闲期也计费；
+                  </li>
+                  <li>
+                    <strong>免写入/存储费（<code>free_auto</code>）</strong>：首次按标准输入原价计费，系统后台自动建立缓存。
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <h3 class="guide-subheading">3. 为什么「缓存时间 (TTL)」经常有两个值？</h3>
+            <ul>
+              <li>
+                <strong>短档 / 长档两级 TTL（如 Anthropic / Kimi 的 <code>5m / 1h</code>，OpenAI 的 <code>30m / 12h</code>）</strong>：
+                <strong>前一个值</strong>（<code>5m</code> / <code>30m</code>）是默认短缓存，写入成本低（<code>1.0×–1.25×</code>），适合连续高频对话与 Agent；<strong>后一个值</strong>（<code>1h</code> / <code>12h</code>）是需显式指定的长缓存，写入倍率更高（<code>2.0×–2.5×</code>），适合调用间隔跨分钟、跨小时或全天复用的场景。注：Anthropic、阿里云显式与 Kimi 在有效期内每次命中会自动顺延重置计时。
+              </li>
+              <li>
+                <strong>隐式 / 显式双模式并存（如 Gemini 3.8 Flash 的 <code>隐式自动 / 显式默认 1h 可调</code>，阿里云百炼的 <code>隐式动态 / 显式 5m</code>）</strong>：
+                <strong>斜杠前（隐式）</strong>无需改代码、免写入和小时存储费，由服务端动态清理，命中率尽力而为；<strong>斜杠后（显式）</strong>需调用缓存接口主动绑定固定留存时长，换取确定性保留或更低读取折扣（如阿里云显式读 1 折 vs 隐式读 2 折），并对应收取写入倍率或小时存储费。
+              </li>
+              <li>
+                <strong>单一模式</strong>：如 Gemini 4 全系、DeepSeek、xAI、MiniMax 仅支持自动隐式缓存，无固定公开过期时间；火山方舟则支持显式自定义 TTL 最长 <code>168h</code>（7 天）并按小时计存储费。
+              </li>
+            </ul>
+
+            <h3 class="guide-subheading">4. 重点说明与 Prompt 排版建议</h3>
+            <ul>
+              <li>
+                <strong>Gemini 4 的 <code>Implicit caching only</code> 是什么意思？</strong>：按 Google 官方最新规范，Gemini 4 全系（Carbon / Argon / Neon / Hydrogen）仅支持隐式自动缓存、不提供显式 Context Caching API；因此既不需要手动创建或续期缓存对象，也不会产生每小时存储费——只要请求前缀满足最小长度（通常 <code>≥ 4,096 tokens</code>）即可由系统自动尽力命中，享约 95% 缓存读折扣。
+              </li>
+              <li>
+                <strong>提高隐式缓存命中率的排版建议</strong>：把固定不变的内容（System Prompt、工具/Schema 定义、长篇知识库或代码上下文）放在请求最前方，把每轮变化的用户提问、实时状态放在最后方；不要在固定前缀开头插入时间戳、随机 Request ID 或动态变量，尽量避免无谓调整工具列表与前缀顺序，并保持相对紧凑的调用间隔。
+              </li>
+            </ul>
+          </div>
+        </details>
+
+        <section class="sources-section">
+          <div class="section-head">
+            <h2>各厂商官方定价原始链接总表</h2>
+            <p class="muted" id="api-disclaimer"></p>
+          </div>
+          <div class="sources-grid" id="providers-sources-grid"></div>
+        </section>
+      </section>
+
+      <!-- ==================== TAB 2: 包月套餐 & 估算 Token ==================== -->
+      <section id="panel-plans" class="tab-panel" aria-labelledby="tab-plans">
+        <div class="card estimator-panel">
+          <div class="estimator-mobile-bar">
+            <span id="plan-estimator-summary" class="mono small">80% 缓存 · 20% 输出 · 15K/次</span>
+            <button
+              type="button"
+              id="plan-toggle-estimator"
+              class="mobile-filter-toggle"
+              aria-expanded="false"
+              aria-controls="plan-estimator-body"
+            >
+              调整估算参数
+            </button>
+          </div>
+
+          <div id="plan-estimator-body" class="estimator-collapsible">
+            <div class="estimator-head">
+              <div>
+                <h2>包月可用 Token 实时估算参数</h2>
+                <p class="muted">根据你的真实开发习惯动态换算月可用 Token 与等效 API 价值；各套餐已区分精算与动态池估算</p>
+              </div>
+              <div class="segmented" id="plan-scene-presets" role="group" aria-label="估算场景预设">
+                <button type="button" class="seg-btn active" data-scene="agent">Coding Agent (80% 缓存)</button>
+                <button type="button" class="seg-btn" data-scene="daily">日常编程 (50% 缓存)</button>
+                <button type="button" class="seg-btn" data-scene="chat">纯对话 (20% 缓存)</button>
+              </div>
+            </div>
+
+            <div class="sliders-grid">
+              <label class="slider-item">
+                <div class="slider-top">
+                  <span>缓存命中率</span>
+                  <strong class="mono" id="val-cache-hit">80%</strong>
+                </div>
+                <input id="slider-cache-hit" type="range" min="0" max="95" step="5" value="80" />
+              </label>
+
+              <label class="slider-item">
+                <div class="slider-top">
+                  <span>输出 Token 占比</span>
+                  <strong class="mono" id="val-out-share">20%</strong>
+                </div>
+                <input id="slider-out-share" type="range" min="5" max="50" step="5" value="20" />
+              </label>
+
+              <label class="slider-item">
+                <div class="slider-top">
+                  <span>单次模型调用平均 Token（按次套餐用）</span>
+                  <strong class="mono" id="val-tokens-per-req">15K</strong>
+                </div>
+                <input id="slider-tokens-per-req" type="range" min="5" max="50" step="1" value="15" />
+              </label>
+
+              <div class="slider-item checkbox-card">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="toggle-zhipu-offpeak" />
+                  <span>智谱非高峰 5 折时段（工作日 14-18 点外及周末）</span>
+                </label>
+                <span class="muted small">开启后智谱积分公式可跑量翻倍</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card toolbar plans-toolbar">
+          <div class="toolbar-row toolbar-main-row">
+            <div class="toolbar-search-line">
+              <div class="field-group grow">
+                <label class="sr-only" for="plan-search">搜索套餐或可用模型</label>
+                <input
+                  id="plan-search"
+                  type="search"
+                  class="input"
+                  placeholder="搜索套餐名、厂商或包含模型（如 Claude Code、Codex、GLM-5.4、K3.1）..."
+                />
+              </div>
+              <button
+                type="button"
+                id="plan-toggle-advanced"
+                class="mobile-filter-toggle"
+                aria-expanded="false"
+                aria-controls="plan-advanced-filters"
+              >
+                筛选
+              </button>
+            </div>
+
+            <div class="segmented plan-cat-segmented" id="plan-category-filter" role="group" aria-label="套餐分类">
+              <button type="button" class="seg-btn active" data-category="all">全部套餐</button>
+              <button type="button" class="seg-btn" data-category="general_coding">海外通用 &amp; Agent</button>
+              <button type="button" class="seg-btn" data-category="ide_coding">海外 IDE</button>
+              <button type="button" class="seg-btn" data-category="china_coding">国内 Coding Plan</button>
+            </div>
+          </div>
+
+          <div id="plan-advanced-filters" class="toolbar-row toolbar-advanced">
+            <div class="segmented" id="plan-region-filter" role="group" aria-label="套餐区域">
+              <button type="button" class="seg-btn active" data-plan-region="all">全部区域</button>
+              <button type="button" class="seg-btn" data-plan-region="global">海外</button>
+              <button type="button" class="seg-btn" data-plan-region="china">国内</button>
+            </div>
+
+            <label class="select-wrap">
+              <span>估算方式</span>
+              <select id="plan-method-filter" class="select">
+                <option value="all">全部方式</option>
+                <option value="formula_points">官方公式精算</option>
+                <option value="credits_usd">固定额度换算</option>
+                <option value="requests_based">按次折算</option>
+                <option value="estimated_pool">动态池估算</option>
+              </select>
+            </label>
+
+            <label class="inline-num-wrap" title="过滤月费低于等于该预算上限的套餐（不含动态实时刊例价）">
+              <span>月费 ≤</span>
+              <input id="plan-max-budget" type="number" min="0" step="10" placeholder="不限" />
+              <span id="plan-max-budget-unit">¥/月</span>
+            </label>
+
+            <label class="checkbox-label" title="仅显示含固定可用 AI/API Credits 的套餐">
+              <input type="checkbox" id="plan-only-credits" />
+              <span>仅含 API Credits</span>
+            </label>
+
+            <label class="select-wrap">
+              <span>排序</span>
+              <select id="plan-sort" class="select">
+                <option value="default">默认推荐排序</option>
+                <option value="price_asc">月费从低到高</option>
+                <option value="price_desc">月费从高到低</option>
+                <option value="tokens_desc">估算 Token 从高到低</option>
+                <option value="value_ratio_desc">单位月费 Token 性价比</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="toolbar-row toolbar-row-secondary">
+            <div class="chip-bar-wrap">
+              <div class="chip-list" id="plan-vendor-chips" aria-label="套餐厂商筛选"></div>
+              <span class="muted small chip-hint">可多选对比</span>
+            </div>
+            <div class="meta-bar-left">
+              <span class="muted small" id="plans-count-summary"></span>
+              <button type="button" id="plan-reset-filters" class="btn-reset hidden">重置筛选</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="plans-grid" id="plans-grid"></div>
+
+        <details class="card methodology-card">
+          <summary>估算方法说明（四类套餐分别如何计算？）</summary>
+          <div class="methodology-body">
+            <ul>
+              <li>
+                <strong>官方公式精算（智谱 GLM Coding Plan）</strong>：依据公开的 GLM-5.4 积分公式
+                <code>消耗积分 = (未命中输入×4.6 + 缓存命中×1.1 + 输出×16) / 10000</code>，将周积分乘以
+                <code>4.33</code> 折算月积分，再按你设置的输入/缓存/输出比例反推可运行的总 Token；非高峰 5 折时段再乘 <code>2×</code>。
+              </li>
+              <li>
+                <strong>固定额度换算（GitHub Copilot）</strong>：按官方公开月额度（Pro $15 / Pro+ $70 / Max $200）除以对应参考模型的混合单价，得出确定额度内可支撑的 Token 总量（未计入其无限内联代码补全）。
+              </li>
+              <li>
+                <strong>按次折算（阿里云百炼 / 火山方舟 Coding Plan）</strong>：Agent 每次提问常触发 10–30 次底层模型调用。以「月度调用次数上限 × 单次平均 Token 滑块」计算理论上限，并以 35% 实际月均利用率给出务实估算区间。
+              </li>
+              <li>
+                <strong>动态池估算（ChatGPT / Claude / Google AI / Cursor / Kimi / MiniMax）</strong>：此类套餐官方未公布绝对月 Token 上限，表格依据附赠 API Credits 与社区/官方公开的档位倍数推算等效 API 价值区间，再按当前参数换算为月度 Token 参考区间。
+              </li>
+            </ul>
+            <p class="muted small" id="plans-disclaimer"></p>
+          </div>
+        </details>
+      </section>
+
+      <!-- ==================== TAB 3: 第三方渠道对比（预留） ==================== -->
+      <section id="panel-third-party" class="tab-panel" aria-labelledby="tab-third-party">
+        <div class="card notice-banner">
+          <div>
+            <h2>第三方聚合渠道对比（预留框架 · 待实测 token/s）</h2>
+            <p class="muted" id="tp-description"></p>
+          </div>
+          <span class="badge badge-warn">Waiting Benchmark</span>
+        </div>
+
+        <div class="channels-grid" id="tp-channels-grid"></div>
+
+        <div class="card toolbar tp-toolbar">
+          <div class="toolbar-row">
+            <div class="field-group grow">
+              <label class="sr-only" for="tp-search">搜索第三方对比模型或渠道</label>
+              <input
+                id="tp-search"
+                type="search"
+                class="input"
+                placeholder="搜索渠道、模型、厂商或缓存差异备注..."
+              />
+            </div>
+
+            <label class="select-wrap">
+              <span>渠道</span>
+              <select id="tp-channel-filter" class="select">
+                <option value="all">全部渠道</option>
+              </select>
+            </label>
+
+            <label class="select-wrap">
+              <span>状态</span>
+              <select id="tp-status-filter" class="select">
+                <option value="all">全部状态</option>
+                <option value="measured">已实测</option>
+                <option value="pending_benchmark">待实测</option>
+              </select>
+            </label>
+
+            <div class="meta-bar-left">
+              <span class="muted small" id="tp-result-summary"></span>
+              <button type="button" id="tp-reset-filters" class="btn-reset hidden">重置筛选</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card table-card">
+          <div class="table-scroll">
+            <table class="pricing-table" id="tp-table">
+              <thead>
+                <tr>
+                  <th>渠道</th>
+                  <th>模型（对比官方）</th>
+                  <th class="num">官方 输入 / 输出 / 缓存读</th>
+                  <th>第三方标价与手续费差异</th>
+                  <th class="num">第三方 token/s</th>
+                  <th class="num">官方 token/s</th>
+                  <th class="num">TTFT</th>
+                  <th>缓存与路由差异备注</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody id="tp-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card snippet-card">
+          <div class="snippet-head">
+            <div>
+              <h3>后续补充实测数据模板</h3>
+              <p class="muted small">实测完成后，直接编辑 <code>public/data/third-party.json</code> 的 <code>benchmarks</code> 数组即可生效</p>
+            </div>
+            <button type="button" class="btn-secondary" id="copy-tp-template">复制 JSON 模板</button>
+          </div>
+          <pre class="code-block"><code id="tp-template-code">{
+  "channelId": "opencode-zen",
+  "modelId": "claude-sonnet-5-5",
+  "priceDeltaPct": 0,
+  "effectiveFeeNote": "Token 原价透传，银行卡充值约 +4.6% + $0.31",
+  "tokensPerSec": 78.5,
+  "officialTokensPerSec": 84.2,
+  "ttftMs": 420,
+  "cacheDiffNote": "5m 缓存命中率约 92%，偶发路由漂移导致首轮重新写入",
+  "testedAt": "2026-12-01",
+  "status": "measured"
+}</code></pre>
+        </div>
+      </section>
+    </main>
+
+    <footer class="container site-footer">
+      <p>
+        静态站运行于 Cloudflare Workers Static Assets · 所有数据均存放于
+        <code>public/data/*.json</code>，无后台数据库与外部跟踪脚本。
+      </p>
+    </footer>
+
+    <div
+      id="order-modal"
+      class="modal-backdrop hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="order-modal-title"
+    >
+      <div class="modal-card card">
+        <div class="modal-head">
+          <div>
+            <h2 id="order-modal-title">自定义默认厂商排序</h2>
+            <p class="muted small">
+              拖拽或点击右侧按钮调整顺序，自动保存在当前浏览器的本地存储（localStorage）中，刷新页面后依然生效。
+            </p>
+          </div>
+          <button type="button" id="close-order-modal" class="icon-btn" aria-label="关闭排序弹窗">关闭</button>
+        </div>
+
+        <ul id="order-list" class="order-list"></ul>
+
+        <div class="modal-foot">
+          <span id="order-save-status" class="muted small">当前为默认顺序</span>
+          <div class="modal-actions">
+            <button type="button" id="reset-provider-order" class="btn-secondary">恢复默认顺序</button>
+            <button type="button" id="done-order-modal" class="btn-primary">完成</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="th-popover" class="th-popover card hidden" role="dialog" aria-labelledby="th-popover-title">
+      <div class="th-popover-head">
+        <h3 id="th-popover-title"></h3>
+        <button type="button" id="th-popover-close" class="th-popover-close" aria-label="关闭说明">×</button>
+      </div>
+      <div id="th-popover-body" class="th-popover-body"></div>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

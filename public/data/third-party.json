@@ -1,0 +1,57 @@
+{
+  "meta": {
+    "status": "planned",
+    "verifiedAt": "2026-11-24",
+    "description": "预留结构：后续补充 OpenCode Zen、OpenRouter 等第三方聚合渠道相对官方的单价差、充值手续费、实测 token/s、TTFT 与缓存命中差异。"
+  },
+  "channels": [
+    {
+      "id": "opencode-zen",
+      "name": "OpenCode Zen / Console",
+      "modelCountNote": "80+ 主流与开源模型统一网关",
+      "pricingModel": "标价基本按官方原价透传（Pay-as-you-go），银行卡预充值约 4.6% + $0.31 网关手续费",
+      "apiBaseUrl": "https://opencode.ai/zen/v1/",
+      "cacheBehavior": "尽量透传底层模型 Prompt Caching（Anthropic / OpenAI / Google 等），但路由切换时偶发缓存前缀失效需实测观察",
+      "status": "planned",
+      "sourceUrl": "https://opencode.ai/docs/console/models/"
+    }
+  ],
+  "benchmarks": [
+    {
+      "channelId": "opencode-zen",
+      "modelId": "claude-sonnet-5-5",
+      "priceDeltaPct": 0,
+      "effectiveFeeNote": "Token 标价 0% 加价；单次充值附加约 4.6% + $0.31 卡手续费",
+      "tokensPerSec": null,
+      "officialTokensPerSec": null,
+      "ttftMs": null,
+      "cacheDiffNote": "待实测：跨上游路由时 5m 缓存命中率与官方直连对比",
+      "testedAt": null,
+      "status": "pending_benchmark"
+    },
+    {
+      "channelId": "opencode-zen",
+      "modelId": "gpt-6.2-sol",
+      "priceDeltaPct": 0,
+      "effectiveFeeNote": "Token 标价 0% 加价；实际折算成本约 +4.6% 充值网关费",
+      "tokensPerSec": null,
+      "officialTokensPerSec": null,
+      "ttftMs": null,
+      "cacheDiffNote": "待实测：自动前缀缓存命中率与首字延迟 TTFT",
+      "testedAt": null,
+      "status": "pending_benchmark"
+    },
+    {
+      "channelId": "opencode-zen",
+      "modelId": "deepseek-v4-pro",
+      "priceDeltaPct": 0,
+      "effectiveFeeNote": "按 USD 官方标价透传，另计预充值网关手续费",
+      "tokensPerSec": null,
+      "officialTokensPerSec": null,
+      "ttftMs": null,
+      "cacheDiffNote": "待实测：峰谷分时优惠是否透传及连续生成 token/s",
+      "testedAt": null,
+      "status": "pending_benchmark"
+    }
+  ]
+}
