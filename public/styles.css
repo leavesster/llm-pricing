@@ -16,6 +16,8 @@
   --amber-soft: #fff6e5;
   --purple: #6338c4;
   --purple-soft: #f3efff;
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
   --slate-soft: #eef1f5;
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
   --radius: 10px;
@@ -41,6 +43,8 @@
   --amber-soft: rgba(245, 182, 66, 0.14);
   --purple: #b197fc;
   --purple-soft: rgba(177, 151, 252, 0.14);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.16);
   --slate-soft: #1f2937;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
@@ -344,6 +348,11 @@ pre,
 .badge-purple {
   background: var(--purple-soft);
   color: var(--purple);
+}
+
+.badge-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 /* Toolbar */

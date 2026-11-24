@@ -1,0 +1,44 @@
+# 手动按需触发的校验与价格巡检模板
+# - 仅配置 workflow_dispatch，不会在每次 push 时自动运行或因缺少 Secrets 报错。
+# - 说明：GitHub Free 账户的私有仓库每月自带 2,000 分钟免费 Linux runner 额度；不手动触发则消耗 0 分钟。
+# - 如后续需要每周自动定时巡检并生成 Summary，可取消下方 schedule 注释；如需合并后自动部署 Cloudflare Workers，配置 CLOUDFLARE_API_TOKEN 即可。
+
+name: Check & Watch Pricing
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "执行模式：check（离线校验与链接检查）或 watch（含开源哨兵与到期巡检）"
+        required: true
+        default: "check"
+        type: choice
+        options:
+          - check
+          - watch
+  # schedule:
+  #   - cron: "0 2 * * 1" # 每周一 UTC 02:00（北京时间 10:00）
+
+jobs:
+  run-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run schema & invariant checks
+        run: npm run check
+
+      - name: Check official links
+        if: ${{ inputs.mode == 'check' }}
+        run: npm run check:links
+
+      - name: Run pricing update watcher
+        if: ${{ inputs.mode == 'watch' || github.event_name == 'schedule' }}
+        run: |
+          node scripts/check-updates.mjs --skip-snapshots --markdown >> "$GITHUB_STEP_SUMMARY"

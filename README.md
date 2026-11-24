@@ -38,13 +38,29 @@
 ## 数据维护说明
 
 ### 1. 更新官方价格与套餐
-直接编辑 `public/data/api-pricing.json` 与 `public/data/plans.json`，更新 `meta.verifiedAt` 日期，随后运行校验脚本确保数据格式与官方 URL 均合规：
+直接编辑 `public/data/api-pricing.json`、`public/data/plans.json` 与 `public/data/third-party.json`，同步更新顶层 `meta.verifiedAt` 与对应厂商的 `verifiedAt`；有限时首发价的模型需维护 `promoEndsAt`（`YYYY-MM-DD`，到期后页面会自动弹出过期警示徽章）。
+
+随后运行校验脚本（含字段合法性、缓存与价格不变量、促销到期提醒与 JS 语法检查）：
 
 ```bash
 npm run check
+npm run check:links   # 可选：并发检查官方链接可访问性
 ```
 
-### 2. 补充第三方渠道 `token/s` 实测数据
+### 2. 变动巡检与防过期监控（零依赖本地运行）
+项目内置 `scripts/check-updates.mjs`，支持「本地陈旧度/到期巡检 + LiteLLM/OpenRouter 开源价格哨兵 + 官网价格段落快照 Diff」三合一检查（不直接篡改 JSON，仅输出线索供人工 30 秒审核）：
+
+```bash
+# 首次运行：拉取官网关键价格段落并保存本地快照基线（存入 .cache/，已被 .gitignore 忽略）
+npm run watch:save
+
+# 日常巡检：比对促销到期、开源哨兵价差/新模型线索、官网页面快照变化
+npm run watch
+```
+
+> **关于私有仓库 GitHub Actions 额度**：GitHub Free 的私有仓库每月默认包含 **2,000 分钟** 免费 Linux runner 额度。仓库中已附带手动触发模板 `.github/workflows/check-and-watch.yml`（仅配置 `workflow_dispatch`，日常推送消耗 **0 分钟**）；也可以在 T3 Code 对话中使用 `/schedule` 定期执行 `npm run watch` 并核对变化。
+
+### 3. 补充第三方渠道 `token/s` 实测数据
 打开 `public/data/third-party.json`，在 `channels` 中维护渠道信息，并在 `benchmarks` 数组中为对应的 `modelId` 填入实测字段：
 - `priceDeltaPct`：相对官方 API 标价差（百分比，如 `0` 表示原价透传，`10` 表示溢价 10%）
 - `tokensPerSec` / `officialTokensPerSec`：第三方渠道与官方直连实测生成速度（tok/s）

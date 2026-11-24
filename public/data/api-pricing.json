@@ -11,6 +11,7 @@
       "name": "OpenAI",
       "region": "global",
       "nativeCurrency": "USD",
+      "verifiedAt": "2026-11-24",
       "pricingUrl": "https://developers.openai.com/api/docs/pricing",
       "extraUrls": [
         {
@@ -26,6 +27,7 @@
       "name": "Anthropic Claude",
       "region": "global",
       "nativeCurrency": "USD",
+      "verifiedAt": "2026-11-24",
       "pricingUrl": "https://platform.claude.com/docs/en/about-claude/pricing",
       "extraUrls": [
         {
@@ -41,6 +43,7 @@
       "name": "Google Gemini",
       "region": "global",
       "nativeCurrency": "USD",
+      "verifiedAt": "2026-11-24",
       "pricingUrl": "https://aistudio.google.com/docs/pricing",
       "extraUrls": [],
       "cacheSummary": "Gemini 4 全系仅支持隐式自动缓存（Implicit caching only，不支持显式缓存、免存储费，命中约 95% 折扣）；Gemini 3.8 Flash 等支持隐式自动缓存（免存储费）及显式缓存（按声明 TTL 计每小时存储费，$0.50/1M/h，2027 起 $1.00）",
@@ -51,6 +54,7 @@
       "name": "DeepSeek",
       "region": "china",
       "nativeCurrency": "CNY",
+      "verifiedAt": "2026-11-24",
       "pricingUrl": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
       "extraUrls": [
         {
@@ -66,6 +70,7 @@
       "name": "xAI Grok",
       "region": "global",
       "nativeCurrency": "USD",
+      "verifiedAt": "2026-11-24",
       "pricingUrl": "https://docs.x.ai/docs/models",
       "extraUrls": [],
       "cacheSummary": "自动 Prompt Caching 免写入与存储费，缓存读取约为标准输入的 15%–25%",
@@ -76,6 +81,7 @@
       "name": "智谱 AI (GLM)",
       "region": "china",
       "nativeCurrency": "CNY",
+      "verifiedAt": "2026-11-24",
       "pricingUrl": "https://bigmodel.cn/pricing",
       "extraUrls": [
         {
@@ -91,6 +97,7 @@
       "name": "阿里云百炼 (Qwen)",
       "region": "china",
       "nativeCurrency": "CNY",
+      "verifiedAt": "2026-11-24",
       "pricingUrl": "https://help.aliyun.com/zh/model-studio/models",
       "extraUrls": [],
       "cacheSummary": "隐式缓存免写入（读 2 折）与显式缓存（写 1.25x，读 1 折，TTL 5m/1h 命中续期）互斥",
@@ -101,6 +108,7 @@
       "name": "Kimi (Moonshot AI)",
       "region": "china",
       "nativeCurrency": "CNY",
+      "verifiedAt": "2026-11-24",
       "pricingUrl": "https://platform.kimi.com/docs/pricing/chat",
       "extraUrls": [],
       "cacheSummary": "自动/可控 Context Caching，5m 写入 1x（部分旧版 1h 2x），命中约 1 折且自动续期",
@@ -111,6 +119,7 @@
       "name": "MiniMax",
       "region": "china",
       "nativeCurrency": "USD",
+      "verifiedAt": "2026-11-24",
       "pricingUrl": "https://platform.minimax.io/docs/pricing/overview",
       "extraUrls": [
         {
@@ -126,6 +135,7 @@
       "name": "火山方舟 (豆包 Doubao)",
       "region": "china",
       "nativeCurrency": "CNY",
+      "verifiedAt": "2026-11-24",
       "pricingUrl": "https://docs.volcengine.com/docs/ark/model-pricing?lang=zh",
       "extraUrls": [
         {
@@ -339,6 +349,7 @@
       "cacheTtl": "仅隐式自动缓存（未公开固定 TTL）",
       "cacheTtlDetail": "Implicit caching only：不支持显式 Context Caching API，无每小时存储费；重复前缀满足最小长度（通常 ≥4,096 tokens）时自动尽力命中，享约 95% 缓存读折扣。",
       "promoNote": "首发价至 2026-11-30；12-01 起 $4/$20/$0.20",
+      "promoEndsAt": "2026-11-30",
       "notes": "输出含 Thinking tokens；2026-12-01 起恢复标准价 $4.00 / $20.00 / 缓存读 $0.20。",
       "sourceUrl": "https://aistudio.google.com/docs/pricing"
     },
@@ -358,6 +369,7 @@
       "cacheTtl": "仅隐式自动缓存（未公开固定 TTL）",
       "cacheTtlDetail": "Implicit caching only：不支持显式 Context Caching API，无每小时存储费；重复前缀满足最小长度（通常 ≥4,096 tokens）时自动尽力命中，享约 95% 缓存读折扣。",
       "promoNote": "首发价至 2026-11-30；12-01 起 $4/$20/$0.20",
+      "promoEndsAt": "2026-11-30",
       "notes": "输出含 Thinking tokens；Batch API 享 5 折。",
       "sourceUrl": "https://aistudio.google.com/docs/pricing"
     },
@@ -414,6 +426,7 @@
       "cacheTtl": "隐式自动 / 显式默认 1h 可调",
       "cacheTtlDetail": "显式存储当前 $0.50/1M/h；2027-01-01 起 $1.00/1M/h",
       "promoNote": "首发价至 2026-12-31；2027-01-01 起 $1.50/$7.50/$0.15，存储 $1.00/h",
+      "promoEndsAt": "2026-12-31",
       "notes": "高吞吐低延迟多模态型号，隐式缓存免存储费。",
       "sourceUrl": "https://aistudio.google.com/docs/pricing"
     },

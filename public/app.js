@@ -408,6 +408,73 @@ function renderThirdPartyCell(model) {
     .join('');
 }
 
+function parseLocalYmd(ymd) {
+  if (typeof ymd !== 'string') return null;
+  const match = ymd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const y = Number(match[1]);
+  const m = Number(match[2]);
+  const d = Number(match[3]);
+  const date = new Date(y, m - 1, d);
+  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return null;
+  return date;
+}
+
+function getDaysDiffFromToday(ymd) {
+  const target = parseLocalYmd(ymd);
+  if (!target) return null;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
+}
+
+function getPromoStatus(model) {
+  if (model.promoEndsAt) {
+    const days = getDaysDiffFromToday(model.promoEndsAt);
+    if (days !== null) {
+      if (days < 0) {
+        return {
+          badgeClass: 'badge-danger',
+          text: `首发价已于 ${model.promoEndsAt} 到期，请核对官价`,
+        };
+      }
+      if (days <= 14) {
+        return {
+          badgeClass: 'badge-warn',
+          text:
+            days === 0
+              ? `今日到期（${model.promoEndsAt}）· ${model.promoNote || '待复核'}`
+              : `距调价剩 ${days} 天 · ${model.promoNote || model.promoEndsAt}`,
+        };
+      }
+    }
+  }
+  if (model.promoNote) {
+    return { badgeClass: 'badge-warn', text: model.promoNote };
+  }
+  return null;
+}
+
+function buildModelBadgesHtml(model) {
+  const badges = [
+    `<span class="badge badge-neutral">${escapeHtml(model.contextWindow)}</span>`,
+    `<span class="badge badge-neutral">${escapeHtml(TIER_LABELS[model.tier] || model.tier)}</span>`,
+  ];
+  if (model.offPeakFactor && STATE.deepseekOffPeak) {
+    badges.push('<span class="badge badge-green">已按空闲 5 折</span>');
+  } else if (model.offPeakFactor) {
+    badges.push('<span class="badge badge-accent">空闲半价</span>');
+  }
+  const promo = getPromoStatus(model);
+  if (promo) {
+    badges.push(`<span class="badge ${promo.badgeClass}">${escapeHtml(promo.text)}</span>`);
+  }
+  if (model.longContextRule) {
+    badges.push(`<span class="badge badge-purple">${escapeHtml(model.longContextRule)}</span>`);
+  }
+  return badges.join('');
+}
+
 function renderApiTable() {
   const providerMap = new Map(STATE.apiData.providers.map((p) => [p.id, p]));
   const query = STATE.search.trim().toLowerCase();
@@ -503,22 +570,7 @@ function renderApiTable() {
     const blended = computeModelBlendedForPreset(m);
     const cacheRatio = m.input > 0 ? m.cacheRead / m.input : 0;
     const isExpanded = STATE.expandedModelIds.has(m.id);
-
-    const badges = [
-      `<span class="badge badge-neutral">${escapeHtml(m.contextWindow)}</span>`,
-      `<span class="badge badge-neutral">${escapeHtml(TIER_LABELS[m.tier] || m.tier)}</span>`,
-    ];
-    if (m.offPeakFactor && STATE.deepseekOffPeak) {
-      badges.push('<span class="badge badge-green">已按空闲 5 折</span>');
-    } else if (m.offPeakFactor) {
-      badges.push('<span class="badge badge-accent">空闲半价</span>');
-    }
-    if (m.promoNote) {
-      badges.push(`<span class="badge badge-warn">${escapeHtml(m.promoNote)}</span>`);
-    }
-    if (m.longContextRule) {
-      badges.push(`<span class="badge badge-purple">${escapeHtml(m.longContextRule)}</span>`);
-    }
+    const badgesHtml = buildModelBadgesHtml(m);
 
     const extraLinksHtml = (p.extraUrls || [])
       .map(
@@ -538,7 +590,7 @@ function renderApiTable() {
             <span class="mono">${escapeHtml(m.modelId)}</span>
           </div>
           <div class="model-name">${escapeHtml(m.name)}</div>
-          <div class="model-badges">${badges.join('')}</div>
+          <div class="model-badges">${badgesHtml}</div>
         </td>
         <td class="num">
           <span class="price-strong">${escapeHtml(formatPrice(eff.input, m.currency))}</span>
@@ -640,22 +692,7 @@ function renderApiMobileCards(rows, providerMap) {
       const blended = computeModelBlendedForPreset(m);
       const cacheRatio = m.input > 0 ? m.cacheRead / m.input : 0;
       const isExpanded = STATE.expandedModelIds.has(m.id);
-
-      const badges = [
-        `<span class="badge badge-neutral">${escapeHtml(m.contextWindow)}</span>`,
-        `<span class="badge badge-neutral">${escapeHtml(TIER_LABELS[m.tier] || m.tier)}</span>`,
-      ];
-      if (m.offPeakFactor && STATE.deepseekOffPeak) {
-        badges.push('<span class="badge badge-green">已按空闲 5 折</span>');
-      } else if (m.offPeakFactor) {
-        badges.push('<span class="badge badge-accent">空闲半价</span>');
-      }
-      if (m.promoNote) {
-        badges.push(`<span class="badge badge-warn">${escapeHtml(m.promoNote)}</span>`);
-      }
-      if (m.longContextRule) {
-        badges.push(`<span class="badge badge-purple">${escapeHtml(m.longContextRule)}</span>`);
-      }
+      const badgesHtml = buildModelBadgesHtml(m);
 
       const detailHtml = isExpanded
         ? `<div class="mcard-detail detail-grid">
@@ -710,7 +747,7 @@ function renderApiMobileCards(rows, providerMap) {
                 <span class="mono">${escapeHtml(m.modelId)}</span>
               </div>
               <div class="model-name">${escapeHtml(m.name)}</div>
-              <div class="model-badges">${badges.join('')}</div>
+              <div class="model-badges">${badgesHtml}</div>
             </div>
             <a class="ext-link" href="${escapeHtml(m.sourceUrl)}" target="_blank" rel="noopener noreferrer">官方 ↗</a>
           </div>
@@ -2015,7 +2052,17 @@ async function bootstrap() {
   STATE.providerOrder = loadProviderOrder(STATE.apiData.providers);
   STATE.fxRate = STATE.apiData.meta.defaultUsdToCny || 7.2;
   document.getElementById('fx-rate-input').value = STATE.fxRate.toFixed(2);
-  document.getElementById('verified-badge').textContent = `数据核对：${STATE.apiData.meta.verifiedAt}`;
+  const verifiedBadge = document.getElementById('verified-badge');
+  const verifiedAt = STATE.apiData.meta.verifiedAt;
+  const daysUntilVerified = getDaysDiffFromToday(verifiedAt);
+  const daysSinceVerified = daysUntilVerified !== null ? -daysUntilVerified : 0;
+  if (daysSinceVerified > 30) {
+    verifiedBadge.textContent = `数据核对：${verifiedAt}（已过 ${daysSinceVerified} 天，建议复核）`;
+    verifiedBadge.classList.remove('badge-neutral');
+    verifiedBadge.classList.add('badge-warn');
+  } else {
+    verifiedBadge.textContent = `数据核对：${verifiedAt}`;
+  }
   document.getElementById('api-disclaimer').textContent = STATE.apiData.meta.disclaimer;
   document.getElementById('plans-disclaimer').textContent = STATE.plansData.meta.disclaimer;
 

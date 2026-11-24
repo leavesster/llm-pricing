@@ -8,6 +8,9 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "validate": "node scripts/validate-data.mjs",
-    "check": "node scripts/validate-data.mjs && node --check public/app.js"
+    "check": "node scripts/validate-data.mjs && node --check public/app.js",
+    "check:links": "node scripts/validate-data.mjs --check-links",
+    "watch": "node scripts/check-updates.mjs",
+    "watch:save": "node scripts/check-updates.mjs --save-baseline"
   }
 }
